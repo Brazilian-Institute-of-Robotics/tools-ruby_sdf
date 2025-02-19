@@ -23,6 +23,7 @@ module SDF
 
             models = {}
             links = {}
+            direct_links = {}
             joints = {}
             plugins = []
             frames = {}
@@ -33,6 +34,7 @@ module SDF
                     link = Link.new(child, self)
                     @canonical_link ||= link
                     links[child.attributes["name"]] = link
+                    direct_links[child.attributes["name"]] = link
                 elsif child.name == "joint"
                     joints[child.attributes["name"]] = child
                 elsif child.name == "plugin"
@@ -41,7 +43,8 @@ module SDF
                     frames[child.attributes["name"]] = Frame.new(child, self)
                 end
             end
-            @links  = links
+            @links = links
+            @direct_links = direct_links
             @frames = frames
             @joints = {}
             @models = {}
@@ -179,6 +182,30 @@ module SDF
         # @yieldparam [Plugin] plugin
         def each_plugin(&block)
             @plugins.each(&block)
+        end
+
+        # Enumerates this model's direct links(does not include submodel's links)
+        #
+        # @yieldparam [Link] link
+        def each_direct_link(&block)
+            return enum_for(__method__) unless block_given?
+
+            @direct_links.each_value(&block)
+        end
+
+        # Enumerates the sensors contained in this model(does not include submodel's
+        # sensors)
+        #
+        # Note that sensors are children of links and joints, i.e. calling
+        # #parent on the yield sensor objects will not return self
+        #
+        # @yieldparam [Sensor] sensor
+        def each_direct_sensor(&block)
+            return enum_for(__method__) unless block_given?
+
+            each_direct_link do |l|
+                l.each_sensor(&block)
+            end
         end
 
         # Enumerates the sensors contained in this model

@@ -97,6 +97,101 @@ describe SDF::Model do
         end
     end
 
+    describe "#each_direct_link" do
+        it "does not yield anything if the model has no link" do
+            root = SDF::Model.new(REXML::Document.new("<model></model>").root)
+            assert root.enum_for(:each_direct_link).to_a.empty?
+        end
+        it "does not yields the submodel's links" do
+            root = SDF::Model.new(
+                REXML::Document.new(
+                    "<model name=\"a\"><model name=\"b\"><link name=\"0\" />" \
+                    "<link name=\"1\" /></model></model>"
+                ).root
+            )
+
+            links = root.enum_for(:each_direct_link).to_a
+            assert_equal 0, links.size
+        end
+        it "yields the direct links" do
+            root = SDF::Model.new(
+                REXML::Document.new(
+                    "<model name=\"a\"><link name=\"0\" /><link name=\"1\" />" \
+                    "<model name=\"b\"></model></model>"
+                ).root
+            )
+
+            links = root.enum_for(:each_direct_link).to_a
+            assert_equal 2, links.size
+            links.each do |l|
+                assert_kind_of SDF::Link, l
+                assert_same root, l.parent
+                assert_equal root.xml.elements.to_a("link[@name=\"#{l.name}\"]"), [l.xml]
+            end
+        end
+    end
+
+    describe "#each_sensor" do
+        it "does not yield anything if the model has no sensor link" do
+            root = SDF::Model.new(REXML::Document.new("<model></model>").root)
+            assert root.enum_for(:each_sensor).to_a.empty?
+        end
+        it "yields the links sensor otherwise" do
+            root = SDF::Model.new(
+                REXML::Document.new(
+                    "<model><link name=\"0\"><sensor name=\"a\"/></link>" \
+                    "<link name=\"1\"><sensor name=\"b\" /></link></model>"
+                ).root
+            )
+
+            sensors = root.enum_for(:each_sensor).to_a
+            assert_equal 2, sensors.size
+            sensors.each do |s|
+                assert_kind_of SDF::Sensor, s
+                assert_equal(
+                    root.xml.elements.to_a("link/sensor[@name=\"#{s.name}\"]"), [s.xml]
+                )
+            end
+        end
+    end
+
+    describe "#each_direct_sensor" do
+        it "does not yield anything if the model has no link" do
+            root = SDF::Model.new(REXML::Document.new("<model></model>").root)
+            assert root.enum_for(:each_direct_link).to_a.empty?
+        end
+        it "does not yields the submodel's sensors" do
+            root = SDF::Model.new(
+                REXML::Document.new(
+                    "<model name=\"a\"><model name=\"b\"><link name=\"0\">" \
+                    "<sensor name=\"a\"/></link><link name=\"1\"><sensor name=\"b\"/>" \
+                    "</link></model></model>"
+                ).root
+            )
+
+            sensors = root.enum_for(:each_direct_sensor).to_a
+            assert_equal 0, sensors.size
+        end
+        it "yields the direct sensors" do
+            root = SDF::Model.new(
+                REXML::Document.new(
+                    "<model name=\"a\"><link name=\"0\"><sensor name=\"a\"/></link>" \
+                    "<link name=\"1\"><sensor name=\"b\"/></link><model name=\"b\">" \
+                    "</model></model>"
+                ).root
+            )
+
+            sensors = root.enum_for(:each_direct_sensor).to_a
+            assert_equal 2, sensors.size
+            sensors.each do |s|
+                assert_kind_of SDF::Sensor, s
+                assert_equal(
+                    root.xml.elements.to_a("link/sensor[@name=\"#{s.name}\"]"), [s.xml]
+                )
+            end
+        end
+    end
+
     describe "#each_joint" do
         it "does not yield anything if the model has no joint" do
             root = SDF::Model.new(REXML::Document.new("<model></model>").root)
